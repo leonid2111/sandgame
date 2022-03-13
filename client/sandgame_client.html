@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Simple grid</title>
+  </head>
+  <body>
+
+    <div class="grid">
+      <canvas id="canvas" height="400" width="500"></canvas>
+    </div>
+    
+    <script>
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+	  const rows = 12;
+	  const cellsize = 20;
+	  for(let i=0; i<rows; i++){
+		  for(let j=0; j<rows; j++){
+			  ctx.strokeRect(i*cellsize, j*cellsize, cellsize, cellsize)
+	  }}
+
+      function test_on_click_fn(event){
+		  let x = event.pageX; let y = event.pageY;
+		  if(x<rows*cellsize && y<rows*cellsize){
+			  n1 = ~~(x/cellsize);
+			  n2 = ~~(y/cellsize);
+			  socket.send(JSON.stringify({x: n1, y: n2}))
+			  ctx.strokeRect(n1*cellsize, n2*cellsize, cellsize, cellsize)
+			  ctx.fillStyle = 'blue'
+			  ctx.fillRect(n1*cellsize, n2*cellsize, cellsize, cellsize)
+		  }
+      }
+      
+      var grid = document.querySelector(".grid");
+      grid.addEventListener("click", test_on_click_fn, false);
+
+	  
+      
+      let socket = new WebSocket("ws://127.0.0.1:8080/ws");
+      console.log("Attempting Connection...");
+
+	  socket.addEventListener('message', function (event) {
+		  msg = JSON.parse(event.data).body
+		  console.log('Message from server ', msg);
+		  coords = JSON.parse(msg);
+		  //console.log('Message from server ', coords);
+		  n1 = coords.x;
+		  n2 = coords.y;
+		  ctx.fillStyle = 'green';
+		  ctx.fillRect(n1*cellsize, n2*cellsize, cellsize, cellsize);
+	  });
+
+	  
+	  
+      socket.onopen = () => {
+          console.log("Successfully Connected");
+          socket.send("ws_grid_test")
+      };
+        
+      socket.onclose = event => {
+          console.log("Socket Closed Connection: ", event);
+          socket.send("ws_grid_test Closed")
+      };
+
+      socket.onerror = error => {
+          console.log("Socket Error: ", error);
+      };
+
+    </script>
+  </body>
+</html>
