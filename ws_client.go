@@ -3,35 +3,34 @@ package main
 import (
     "fmt"
     "log"
-
     "github.com/gorilla/websocket"
 )
 
 type Client struct {
     ID   string
     Conn *websocket.Conn
-    Game *Game
+    GamePool *GamePool
 }
 
-type Message struct {
-    Type int    `json:"type"`
-    Body string `json:"body"`
+type ClientMessage struct {
+    Player    *Client    //`json:"type"`
+    Message   []byte      //`json:"body"`
 }
 
 func (c *Client) Listen() {
     defer func() {
-        c.Game.Unregister <- c
+        c.GamePool.Unregister <- c
         c.Conn.Close()
     }()
 
     for {
-        messageType, p, err := c.Conn.ReadMessage()
+        _, p, err := c.Conn.ReadMessage()
         if err != nil {
             log.Println(err)
             return
         }
-        message := Message{Type: messageType, Body: string(p)}
-        c.Game.Broadcast <- message
-        fmt.Printf("Message Received: %+v\n", message)
+        msg := ClientMessage{Player: c, Message: p}//Message{Type: messageType, Body: string(p)}
+        c.GamePool.Move <- &msg
+        fmt.Printf("Message Received: %+v \n", string(p))
     }
 }

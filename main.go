@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"flag"
 	"net/http"
 	"github.com/gorilla/websocket"
 )
@@ -13,7 +14,7 @@ var upgrader = websocket.Upgrader{
 }
 
 
-func connectWs(pool *Game, w http.ResponseWriter, r *http.Request) {
+func connectWs(pool *GamePool, w http.ResponseWriter, r *http.Request) {
     fmt.Println("New player hits wsendpoint")
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
     conn, err := upgrader.Upgrade(w, r, nil)
@@ -22,25 +23,24 @@ func connectWs(pool *Game, w http.ResponseWriter, r *http.Request) {
     }
     client := &Client{
         Conn: conn,
-        Game: pool,
+        GamePool: pool,
     }	
     pool.Register <- client
     client.Listen()
 }
 
+func main() {
+	var port = flag.String("p", "8080", "game port")
+	var size = flag.Int("s", 12, "game grid size")
+	flag.Parse()
+	fmt.Printf("Starting sandgame on port %s with grid size %d\n", *port, *size)
 
-
-func setupRoutes() {
-	pool := NewGame()
+	pool := NewGame(*size)
     go pool.Start()
+	pool.next <- true
 	
-    http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+    http.HandleFunc("/sandgame", func(w http.ResponseWriter, r *http.Request) {
         connectWs(pool, w, r)
     })	
-}
-
-func main() {
-	fmt.Println("test ws starts")
-    setupRoutes()
-    log.Fatal(http.ListenAndServe(":8080", nil))
+    log.Fatal(http.ListenAndServe(":"+*port, nil))
 }

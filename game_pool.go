@@ -1,55 +1,92 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"encoding/json"
+)
 
-type Game struct {
+const MAX_PLAYERS = 10
+
+type GamePool struct {
     Register   chan *Client
     Unregister chan *Client
-    Clients    map[*Client]bool
-    Broadcast  chan Message
-	//GameEngine [][]int
+    Move       chan *ClientMessage
+    players    map[*Client] int
+	active     []bool
+	queue      chan int
+	update     chan bool
+	next       chan bool
+	scores     []int
+	grid       [][]int 
 }
 
-func NewGame() *Game {
-    return &Game{
+func NewGame(size int) *GamePool {
+    return &GamePool{
         Register:   make(chan *Client),
         Unregister: make(chan *Client),
-        Clients:    make(map[*Client]bool),
-        Broadcast:  make(chan Message),
-		//GameEngine:  nil,
+        Move:       make(chan *ClientMessage),
+        players:    make(map[*Client] int),  
+		active:     make([]bool, 0), 
+		queue:      make(chan int, MAX_PLAYERS),
+		update:       make(chan bool),
+		next:       make(chan bool),
+		scores:      make([]int, 0),
+		grid:        initialize(size),
     }
 }
 
-func (pool *Game) Start() {
+func (pool *GamePool) Start() {
     for {
         select {
         case client := <-pool.Register:
-            pool.Clients[client] = true
-            fmt.Println("Connected players: ", len(pool.Clients))
-            for client, _ := range pool.Clients {
-                //fmt.Println(client)
-                client.Conn.WriteJSON(Message{Type: 1, Body: "New Player Joined..."})
-            }
-            break
-        case client := <-pool.Unregister:
-            delete(pool.Clients, client)
-            fmt.Println("Players left: ", len(pool.Clients))
-            for client, _ := range pool.Clients {
-                client.Conn.WriteJSON(Message{Type: 1, Body: "Player Disconnected..."})
-            }
+			n := len(pool.players)
+			pool.players[client] = n
+			pool.active = append(pool.active, true)
+			pool.scores = append(pool.scores, 0)
+			if n==MAX_PLAYERS {
+				fmt.Println("Max number of players reached")
+			}
+			pool.queue <- n
+			fmt.Printf("Player %d joined\n", n)
+			updateJson, _ := json.Marshal(pool.grid)
+			client.Conn.WriteJSON(string(updateJson))
             break
 			
-        case message := <-pool.Broadcast:
-            fmt.Println("Sending message to all clients in Pool")
-            for client, _ := range pool.Clients {
-				fmt.Print("trying to write  %+v\n", message)
-                if err := client.Conn.WriteJSON(message); err != nil {
-                    fmt.Println(err)
-                    return
-                }
-            }
+		case client := <-pool.Unregister:
+			n := pool.players[client]
+			pool.active[n] = false
+            fmt.Printf("Player %d left\n", n)
+            break
 
+		case move := <-pool.Move:
+			n := pool.players[move.Player]
+			var xy [2]int
+			json.Unmarshal(move.Message, &xy)
+			go add_sand(n, xy, pool.grid, &pool.scores[n], pool.update, pool.next)
+			break
+
+		case <-pool.update:
+			fmt.Printf("updating the grid\n")
+			updateJson, _ := json.Marshal(pool.grid)
+			for client, _ := range pool.players {
+				client.Conn.WriteJSON(string(updateJson))
+			}
+			break
 			
+		case <-pool.next:
+			for n := range pool.queue {
+				if pool.active[n] {
+					fmt.Printf("next player: %d\n", n)
+					pool.queue <- n
+					break
+				}
+			}
+			break
+			
+		
         }
     }
 }
+
+
+
