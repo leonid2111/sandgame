@@ -23,22 +23,20 @@ func initialize(size int) [][]int {
     return grid
 }
 
-func add_sand(n int, xy [2]int, grid [][]int, score *int,
-	update chan<- bool, next chan<- bool) {
+func add_sand(xy [2]int, grid [][]int, update chan<- bool) {
+	time.Sleep(DELAY * time.Second)
 	h := grid[xy[0]][xy[1]] + 1
 	if h==4 {
 		full := make([][2]int,1)
 		full[0] = xy
-		distribute(full, score, grid, update, next)
+		distribute(full, grid, update)
 	} else {
 		grid[xy[0]][xy[1]]++
 		update<-true
 	}
-	next<-true
 }
 
-func distribute(full [][2]int, score *int, grid [][]int,
-	update chan<- bool, next chan<- bool) {
+func distribute(full [][2]int, grid [][]int, update chan<- bool) {
 	fmt.Printf("full: %+v\n", full)
 	var new_full [][2]int
 	for _, x := range full {
@@ -51,14 +49,14 @@ func distribute(full [][2]int, score *int, grid [][]int,
 					new_full = append(new_full, y)
 				}
 			} else {
-				*score++
+				//*score++
 			}
 		}
 	}
 	update<-true
 	time.Sleep(DELAY * time.Second)
 	if len(new_full)>0 {
-		distribute(new_full, score, grid, update, next)
+		distribute(new_full, grid, update)
 	}
 } 
 

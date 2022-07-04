@@ -13,6 +13,37 @@ var upgrader = websocket.Upgrader{
     WriteBufferSize: 1024,
 }
 
+type Player struct {
+    id   string
+    Conn *websocket.Conn
+    gamePool *GamePool
+	next *Player
+	prev *Player
+	score int
+}
+
+type PlayerMessage struct {
+    Player    *Player    //`json:"type"`
+    Message   []byte     //`json:"body"`
+}
+
+func (player *Player) Listen() {
+    defer func() {
+        player.gamePool.unregister <- player
+        player.Conn.Close()
+    }()
+
+    for {
+        _, p, err := player.Conn.ReadMessage()
+        if err != nil {
+            log.Println(err)
+            return
+        }
+        msg := PlayerMessage{Player: player, Message: p}
+        fmt.Printf("%s moves:  %+v \n", player.id, string(p))
+        player.gamePool.move <- &msg
+    }
+}
 
 func connectWs(pool *GamePool, w http.ResponseWriter, r *http.Request) {
     fmt.Println("New player hits wsendpoint")
@@ -21,13 +52,17 @@ func connectWs(pool *GamePool, w http.ResponseWriter, r *http.Request) {
     if err != nil {
         fmt.Fprintf(w, "%+v\n", err)
     }
-    client := &Client{
+
+	client := &Player{
         Conn: conn,
-        GamePool: pool,
-    }	
-    pool.Register <- client
+        gamePool: pool,
+    }
+	
+    pool.register <- client
     client.Listen()
 }
+
+
 
 func main() {
 	var port = flag.String("p", "8080", "game port")
@@ -37,7 +72,7 @@ func main() {
 
 	pool := NewGame(*size)
     go pool.Start()
-	pool.next <- true
+	//pool.next <- true   // to remove?
 	
     http.HandleFunc("/sandgame", func(w http.ResponseWriter, r *http.Request) {
         connectWs(pool, w, r)

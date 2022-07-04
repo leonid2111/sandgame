@@ -7,38 +7,63 @@
   <body>
 
     <div class="grid">
-      <canvas id="canvas" height="400" width="500"></canvas>
+      <canvas id="canvas" height="700" width="800"></canvas>
     </div>
     
     <script>
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 	  const cellsize = 20;
+	  const hoffset = 40;
+	  const voffset = 40;
 	  const colors = {0:'white',1:'yellow',2:'red',3:'brown',4:'purple'}
 	  var rows;
+
 	  
 	  function draw_grid(grid){
 		  rows = grid.length;
 		  for(let i=0; i<grid.length; i++){
 			  for(let j=0; j<grid.length; j++){
-				  ctx.strokeRect(i*cellsize, j*cellsize, cellsize, cellsize);
+				  ctx.strokeRect(hoffset+i*cellsize, voffset+j*cellsize, cellsize, cellsize);
 				  ctx.fillStyle = colors[grid[i][j]]
-				  ctx.fillRect(i*cellsize, j*cellsize, cellsize, cellsize)
+				  ctx.fillRect(hoffset+i*cellsize, voffset+j*cellsize, cellsize, cellsize)
 			  }
 		  }
 	  }
+	  
+	  function draw_name(name){
+		  ctx.font = '24px serif';
+		  ctx.fillStyle = 'green';
+		  ctx.fillText(name, hoffset, 30)
+	  }
 
+	  function draw_scoreboard(players){
+		  ctx.font = '24px serif';
+		  ctx.fillStyle = 'green';
+		  for(let i=0; i<players.length; i++){
+			  ctx.fillText(players[i], 2*hoffset+rows*cellsize, voffset+(i+1)*cellsize)
+		  }
+	  }
+
+
+	  function draw_comment(comm){
+		  ctx.font = '20px serif';
+		  ctx.fillStyle = 'black';
+		  console.log('v: ', voffset+(grid.length-1)*cellsize, grid)
+		  ctx.fillText( comm, hoffset-5, voffset+(rows+1)*cellsize)
+	  }
+
+	  
       function test_on_click_fn(event){
-		  let x = event.pageX; let y = event.pageY;
+		  let x = event.pageX - hoffset; let y = event.pageY - voffset;
 		  if(x<rows*cellsize && y<rows*cellsize){
 			  n1 = ~~(x/cellsize);
 			  n2 = ~~(y/cellsize);
+			  ctx.fillStyle = 'blue';
+			  ctx.fillRect(hoffset + n1*cellsize, voffset + n2*cellsize, cellsize, cellsize);
 			  //socket.send(JSON.stringify({x: n1, y: n2}))
 			  socket.send(JSON.stringify([n1, n2]))
 			  
-			  ctx.strokeRect(n1*cellsize, n2*cellsize, cellsize, cellsize)
-			  ctx.fillStyle = 'blue'
-			  ctx.fillRect(n1*cellsize, n2*cellsize, cellsize, cellsize)
 		  }
       }
       
@@ -50,16 +75,25 @@
       console.log("Attempting Connection...");
 
 	  socket.addEventListener('message', function (event) {
-		  //console.log('Message from server ', JSON.parse(event.data));
-		  grid = JSON.parse(JSON.parse(event.data));
-		  console.log('Message from server ', grid);
-		  draw_grid(grid)
-		  /*coords = JSON.parse(msg);
-		  //console.log('Message from server ', coords);
-		  n1 = coords.x;
-		  n2 = coords.y;
-		  ctx.fillStyle = 'green';
-		  ctx.fillRect(n1*cellsize, n2*cellsize, cellsize, cellsize);*/
+		  msg = JSON.parse(JSON.parse(event.data));
+		  console.log('Message from server ', msg);
+		  
+		  if (msg.grid != null){  // grid goes first - sets var rows
+			  console.log('Grid:  ', msg.grid);
+			  draw_grid(msg.grid);
+		  }
+		  if (msg.name != null){
+			  console.log('name:  ', msg.name);
+			  draw_name(msg.name);
+		  }
+		  if ( msg.scores != null){
+			  console.log('scores:  ', msg.scores);
+			  draw_scoreboard(msg.scores);
+		  }
+		  if ( msg.comment != null){
+			  console.log('comment:  ', msg.comment);
+			  draw_comment(msg.comment);
+		  }
 	  });
 
 	  
