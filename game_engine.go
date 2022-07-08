@@ -7,7 +7,7 @@ import (
 )
 
 var Spread = [4][2]int{{0,1},{0,-1},{1,0},{-1,0}}
-const DELAY = 2
+const DELAY = 1
 
 func initialize(size int) [][]int {
 	var grid = make([][]int, size)
@@ -23,7 +23,7 @@ func initialize(size int) [][]int {
     return grid
 }
 
-func add_sand(xy [2]int, grid [][]int, update chan<- bool) {
+func add_sand(xy [2]int, grid [][]int, update chan<- bool, next chan<- bool) {
 	time.Sleep(DELAY * time.Second)
 	h := grid[xy[0]][xy[1]] + 1
 	if h==4 {
@@ -34,6 +34,7 @@ func add_sand(xy [2]int, grid [][]int, update chan<- bool) {
 		grid[xy[0]][xy[1]]++
 		update<-true
 	}
+	next<-true
 }
 
 func distribute(full [][2]int, grid [][]int, update chan<- bool) {

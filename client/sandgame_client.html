@@ -2,15 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Simple grid</title>
+    <title>Sandgame</title>
   </head>
   <body>
 
     <div class="grid">
-      <canvas id="canvas" height="700" width="800"></canvas>
+      <canvas id="canvas" height="700" width="800" style="border:1px solid #d3d3d3;"></canvas>
     </div>
     
     <script>
+	  const player = document.getElementById('player_id');
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 	  const cellsize = 20;
@@ -20,8 +21,10 @@
 	  var rows;
 
 	  
-	  function draw_grid(grid){
+	  function redraw_grid(msg){
+		  grid = msg.grid;
 		  rows = grid.length;
+		  ctx.clearRect(0, 0, canvas.width, canvas.height);
 		  for(let i=0; i<grid.length; i++){
 			  for(let j=0; j<grid.length; j++){
 				  ctx.strokeRect(hoffset+i*cellsize, voffset+j*cellsize, cellsize, cellsize);
@@ -29,32 +32,29 @@
 				  ctx.fillRect(hoffset+i*cellsize, voffset+j*cellsize, cellsize, cellsize)
 			  }
 		  }
-	  }
-	  
-	  function draw_name(name){
-		  ctx.font = '24px serif';
-		  ctx.fillStyle = 'green';
-		  ctx.fillText(name, hoffset, 30)
-	  }
+		  ctx.font = '20px sans-serif';
+		  if (msg.header != null){
+			  ctx.fillStyle = 'black';
+			  ctx.fillText(msg.header, hoffset, 30)
+		  }
 
-	  function draw_scoreboard(players){
-		  ctx.font = '24px serif';
-		  ctx.fillStyle = 'green';
-		  for(let i=0; i<players.length; i++){
-			  ctx.fillText(players[i], 2*hoffset+rows*cellsize, voffset+(i+1)*cellsize)
+		  if (msg.scores != null){
+			  ctx.fillStyle = 'green';
+			  for(let i=0; i<msg.scores.length; i++){
+				  ctx.fillText(msg.scores[i], 2*hoffset+rows*cellsize, voffset+(i+1)*cellsize)
+			  }
+		  }
+
+		  if (msg.comment != null){
+			  ctx.fillStyle = 'black';
+			  ctx.fillText( msg.comment, hoffset-5, voffset+(rows+1)*cellsize)
 		  }
 	  }
+	  
 
-
-	  function draw_comment(comm){
-		  ctx.font = '20px serif';
-		  ctx.fillStyle = 'black';
-		  console.log('v: ', voffset+(grid.length-1)*cellsize, grid)
-		  ctx.fillText( comm, hoffset-5, voffset+(rows+1)*cellsize)
-	  }
 
 	  
-      function test_on_click_fn(event){
+      function on_click_fn(event){
 		  let x = event.pageX - hoffset; let y = event.pageY - voffset;
 		  if(x<rows*cellsize && y<rows*cellsize){
 			  n1 = ~~(x/cellsize);
@@ -63,13 +63,11 @@
 			  ctx.fillRect(hoffset + n1*cellsize, voffset + n2*cellsize, cellsize, cellsize);
 			  //socket.send(JSON.stringify({x: n1, y: n2}))
 			  socket.send(JSON.stringify([n1, n2]))
-			  
+			  var grid = document.querySelector(".grid");
+			  grid.removeEventListener("click", on_click_fn, false);
 		  }
       }
-      
-      var grid = document.querySelector(".grid");
-      grid.addEventListener("click", test_on_click_fn, false);
-	  
+
       
       let socket = new WebSocket("ws://127.0.0.1:8080/sandgame");
       console.log("Attempting Connection...");
@@ -77,22 +75,11 @@
 	  socket.addEventListener('message', function (event) {
 		  msg = JSON.parse(JSON.parse(event.data));
 		  console.log('Message from server ', msg);
+		  redraw_grid(msg);
 		  
-		  if (msg.grid != null){  // grid goes first - sets var rows
-			  console.log('Grid:  ', msg.grid);
-			  draw_grid(msg.grid);
-		  }
-		  if (msg.name != null){
-			  console.log('name:  ', msg.name);
-			  draw_name(msg.name);
-		  }
-		  if ( msg.scores != null){
-			  console.log('scores:  ', msg.scores);
-			  draw_scoreboard(msg.scores);
-		  }
-		  if ( msg.comment != null){
-			  console.log('comment:  ', msg.comment);
-			  draw_comment(msg.comment);
+		  if (msg.activate) {
+			  var grid = document.querySelector(".grid");
+			  grid.addEventListener("click", on_click_fn, false);
 		  }
 	  });
 

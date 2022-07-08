@@ -7,10 +7,10 @@ import (
 )
 
 type ServerMessage struct {
-	Name      string     `json:"name"`
+	Header      string   `json:"header"`
     Grid      [][]int    `json:"grid"`
     Scores    []string   `json:"scores"`
-	Active    bool       `json:"active"`
+	Activate    bool       `json:"activate"`
     Comment   string     `json:"comment"`
 }
 
@@ -20,11 +20,11 @@ type GamePool struct {
     unregister chan *Player
     move       chan *PlayerMessage
 
-    //players    map[*Player] bool
 	first      *Player
 	active     *Player
 	
 	update     chan bool
+	next       chan bool
 	grid       [][]int 
 }
 
@@ -34,43 +34,50 @@ func NewGame(size int) *GamePool {
         register:   make(chan *Player),
         unregister: make(chan *Player),
         move:       make(chan *PlayerMessage),
-        //players:    make(map[*Player] bool),  
 		first:      nil, 
 		active:     nil, 
 		update:     make(chan bool),
+		next:       make(chan bool),
 		grid:       initialize(size),
     }
 }
 
 func (pool *GamePool) get_players_scores() []string {
 	var lines []string
-	p := pool.first
-	for {
+	for p:= pool.first;; p = p.next {
 		line := p.id + " : " + strconv.Itoa(p.score)
-		fmt.Printf("p: %s  pn: %s  pp:%s \n", p.id, p.next.id, p.prev.id )
-		
+		//fmt.Printf("p: %s  pn: %s  pp:%s \n", p.id, p.next.id, p.prev.id )
 		lines = append(lines, line)
 		if p.next == pool.first {
 			break;
-		} else {
-			p = p.next
 		}
 	}
 	return lines
 }
 
-func (pool *GamePool) update_all(msg ServerMessage) {
+func (pool *GamePool) update_all(activate bool, comm string) {
+	msg := ServerMessage{
+		Header:pool.active.id+" your move",
+		Grid:pool.grid,
+		Scores:pool.get_players_scores(),
+		Activate:activate,
+		Comment:comm,
+	}
+	
+	fmt.Printf("Updating active player, %s\n", pool.active.id )
 	updateJson, _ := json.Marshal(msg)
-	p := pool.first
-	for {
-		fmt.Printf("player %s msg: %s\n", p.id, msg.Comment )
-		p.Conn.WriteJSON(string(updateJson)) 
-		if p.next == pool.first {
-			break;
-		} else {
-			p = p.next
-		}
-	}	
+	pool.active.Conn.WriteJSON(string(updateJson))
+
+	fmt.Printf("Updating waiting players\n")
+	for p:= pool.active.next; p != pool.active; p = p.next {
+		fmt.Printf("Looping:  %s %s %s\n", p.id,  p.next.id, pool.first.id)
+		fmt.Printf("Updating  %s\n", p.id )
+		msg.Header = p.id+" waiting for "+pool.active.id+" to move"
+		msg.Activate = false
+		updateJson, _ := json.Marshal(msg)
+		p.Conn.WriteJSON(string(updateJson))
+	}
+	fmt.Printf("Updated all\n")	
 }
 
 
@@ -82,31 +89,22 @@ func (pool *GamePool) Start() {
 			pool.counter++
 			fmt.Printf("player %d registering\n", pool.counter )
 			client.id = "Player "+strconv.Itoa(pool.counter)
-			
+			var activate bool
 			if pool.active == nil {  // first client 
 				client.next = client
 				client.prev = client
 				pool.active = client
 				pool.first = client
+				activate = true
 			} else {
 				client.next = pool.active
 				client.prev = pool.active.prev
 				pool.active.prev.next = client
 				pool.active.prev = client
 			}
-			scoreboard := pool.get_players_scores()
-			comm := client.id + " joined"
-			msg := ServerMessage{
-				Name:client.id,
-				Grid:pool.grid,
-				Scores:scoreboard,
-				Active:(client==pool.active),
-				Comment:comm}
-			updateJson, _ := json.Marshal(msg)
-			client.Conn.WriteJSON(string(updateJson))
 
-			msg = ServerMessage{Scores:scoreboard, Comment:comm}
-			pool.update_all(msg)
+			comm := client.id + " joined"
+			pool.update_all(activate, comm)
             break
 			
 		case client := <-pool.unregister:
@@ -114,21 +112,21 @@ func (pool *GamePool) Start() {
 			if client == client.next {
 				pool.active = nil
 				pool.first = nil
+				fmt.Printf("No more players, waiting for someone to join.\n")
 			} else {
 				client.next.prev = client.prev
 				client.prev.next = client.next
+				
+				var activate bool
 				if client == pool.active {
 					pool.active = client.next
-					// message to client.next here that it is now active
-					// or message this to eveyone
+					activate = true
 				}
 				if client == pool.first {
 					pool.first = client.next
 				}
-				scoreboard := pool.get_players_scores()
 				comm := client.id + " left"
-				msg := ServerMessage{Scores:scoreboard, Comment:comm}
-				pool.update_all(msg)
+				pool.update_all(activate, comm)
 			}
             break
 
@@ -136,20 +134,22 @@ func (pool *GamePool) Start() {
 			fmt.Printf("client move")
 			var xy [2]int
 			json.Unmarshal(move.Message, &xy)
-			go add_sand(xy, pool.grid, pool.update)
-
-			pool.active = pool.active.next
-			// message to everyone that pool.active is now active
+			go add_sand(xy, pool.grid, pool.update, pool.next)
 			break
 
 		case <-pool.update:
 			fmt.Printf("updating the grid\n")			
-			msg := ServerMessage{ Grid:pool.grid}
-			pool.update_all(msg)
+			pool.update_all(false, pool.active.id+" adding sand")
 			break			
-        }
-    }
+        
+		
+		case <-pool.next:
+			fmt.Printf("")
+			pool.active = pool.active.next
+			pool.update_all(true, pool.active.id+" becomes active")
+			break			
+		}
+	}
 }
-
 
 
