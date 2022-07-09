@@ -23,7 +23,7 @@ type GamePool struct {
 	first      *Player
 	active     *Player
 	
-	update     chan bool
+	update     chan int
 	next       chan bool
 	grid       [][]int 
 }
@@ -36,7 +36,7 @@ func NewGame(size int) *GamePool {
         move:       make(chan *PlayerMessage),
 		first:      nil, 
 		active:     nil, 
-		update:     make(chan bool),
+		update:     make(chan int),
 		next:       make(chan bool),
 		grid:       initialize(size),
     }
@@ -57,7 +57,7 @@ func (pool *GamePool) get_players_scores() []string {
 
 func (pool *GamePool) update_all(activate bool, comm string) {
 	msg := ServerMessage{
-		Header:pool.active.id+" your move",
+		Header:pool.active.id+" - your move",
 		Grid:pool.grid,
 		Scores:pool.get_players_scores(),
 		Activate:activate,
@@ -72,7 +72,7 @@ func (pool *GamePool) update_all(activate bool, comm string) {
 	for p:= pool.active.next; p != pool.active; p = p.next {
 		fmt.Printf("Looping:  %s %s %s\n", p.id,  p.next.id, pool.first.id)
 		fmt.Printf("Updating  %s\n", p.id )
-		msg.Header = p.id+" waiting for "+pool.active.id+" to move"
+		msg.Header = p.id+" - waiting for "+pool.active.id
 		msg.Activate = false
 		updateJson, _ := json.Marshal(msg)
 		p.Conn.WriteJSON(string(updateJson))
@@ -137,8 +137,9 @@ func (pool *GamePool) Start() {
 			go add_sand(xy, pool.grid, pool.update, pool.next)
 			break
 
-		case <-pool.update:
-			fmt.Printf("updating the grid\n")			
+		case n := <-pool.update:
+			fmt.Printf("updating the grid, adding %d to %s\n", n, pool.active.id)
+			pool.active.score += n
 			pool.update_all(false, pool.active.id+" adding sand")
 			break			
         
@@ -146,7 +147,7 @@ func (pool *GamePool) Start() {
 		case <-pool.next:
 			fmt.Printf("")
 			pool.active = pool.active.next
-			pool.update_all(true, pool.active.id+" becomes active")
+			pool.update_all(true, pool.active.id+" is next")
 			break			
 		}
 	}

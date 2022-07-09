@@ -17,7 +17,8 @@
 	  const cellsize = 20;
 	  const hoffset = 40;
 	  const voffset = 40;
-	  const colors = {0:'white',1:'yellow',2:'red',3:'brown',4:'purple'}
+	  //const colors = {0:'white',1:'yellow',2:'red',3:'brown',4:'purple'}
+	  const colors = {0:'white',1:'#FFFCCC',2:'#FFD07F',3:'#E59100',4:'purple'}
 	  var rows;
 
 	  
@@ -32,21 +33,19 @@
 				  ctx.fillRect(hoffset+i*cellsize, voffset+j*cellsize, cellsize, cellsize)
 			  }
 		  }
-		  ctx.font = '20px sans-serif';
+		  ctx.font = '18px sans-serif';
+		  ctx.fillStyle = 'black';
 		  if (msg.header != null){
-			  ctx.fillStyle = 'black';
 			  ctx.fillText(msg.header, hoffset, 30)
 		  }
 
 		  if (msg.scores != null){
-			  ctx.fillStyle = 'green';
 			  for(let i=0; i<msg.scores.length; i++){
 				  ctx.fillText(msg.scores[i], 2*hoffset+rows*cellsize, voffset+(i+1)*cellsize)
 			  }
 		  }
 
 		  if (msg.comment != null){
-			  ctx.fillStyle = 'black';
 			  ctx.fillText( msg.comment, hoffset-5, voffset+(rows+1)*cellsize)
 		  }
 	  }
@@ -59,7 +58,7 @@
 		  if(x<rows*cellsize && y<rows*cellsize){
 			  n1 = ~~(x/cellsize);
 			  n2 = ~~(y/cellsize);
-			  ctx.fillStyle = 'blue';
+			  ctx.fillStyle = 'red';
 			  ctx.fillRect(hoffset + n1*cellsize, voffset + n2*cellsize, cellsize, cellsize);
 			  //socket.send(JSON.stringify({x: n1, y: n2}))
 			  socket.send(JSON.stringify([n1, n2]))
