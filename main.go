@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"flag"
+	"time"
 	"net/http"
 	"github.com/gorilla/websocket"
 )
@@ -63,13 +64,15 @@ func connectWs(pool *GamePool, w http.ResponseWriter, r *http.Request) {
 }
 
 
+var DELAY time.Duration
 
 func main() {
 	var port = flag.String("p", "8080", "game port")
 	var size = flag.Int("s", 12, "game grid size")
+	var delay = flag.Int("d", 1, "delay")
 	flag.Parse()
 	fmt.Printf("Starting sandgame on port %s with grid size %d\n", *port, *size)
-
+	DELAY = time.Duration(*delay);
 	pool := NewGame(*size)
     go pool.Start()
 	//pool.next <- true   // to remove?

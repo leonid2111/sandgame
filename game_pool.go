@@ -64,11 +64,11 @@ func (pool *GamePool) update_all(activate bool, comm string) {
 		Comment:comm,
 	}
 	
-	fmt.Printf("Updating active player, %s\n", pool.active.id )
+	//fmt.Printf("Updating active player, %s\n", pool.active.id )
 	updateJson, _ := json.Marshal(msg)
 	pool.active.Conn.WriteJSON(string(updateJson))
 
-	fmt.Printf("Updating waiting players\n")
+	//fmt.Printf("Updating waiting players\n")
 	for p:= pool.active.next; p != pool.active; p = p.next {
 		fmt.Printf("Looping:  %s %s %s\n", p.id,  p.next.id, pool.first.id)
 		fmt.Printf("Updating  %s\n", p.id )
@@ -77,7 +77,7 @@ func (pool *GamePool) update_all(activate bool, comm string) {
 		updateJson, _ := json.Marshal(msg)
 		p.Conn.WriteJSON(string(updateJson))
 	}
-	fmt.Printf("Updated all\n")	
+	//fmt.Printf("Updated all\n")	
 }
 
 
