@@ -9,13 +9,17 @@ import (
 
 var Spread = [4][2]int{{0,1},{0,-1},{1,0},{-1,0}}
 
+var randm *rand.Rand
 
-//source := rand.NewSource(time.Now().UnixNano())
-var source = rand.NewSource(42)
-var randm = rand.New(source)
-
-
-func initialize(size int) [][]int {
+func initialize(size int, fillpct int, seed int64) [][]int {
+	var source rand.Source
+	if seed < 0 {
+		source = rand.NewSource(time.Now().UnixNano())
+	} else {
+		source = rand.NewSource(seed)
+	}
+	randm = rand.New(source)
+	
 	var grid = make([][]int, size)
 	for i := range grid {
 		grid[i] = make([]int, size)
@@ -28,11 +32,9 @@ func initialize(size int) [][]int {
 
 
 func add_sand(xy [2]int, grid [][]int, update chan<- int, next chan<- bool) {
-	time.Sleep(DELAY * time.Second)
+	time.Sleep(100 * time.Millisecond)
 	grid[xy[0]][xy[1]]++
 	if grid[xy[0]][xy[1]] > 3 {
-		//full := make([][2]int,1)
-		//full[0] = xy
 		full := make( map[[2]int] bool)
 		full[xy] = true
 		distribute(full, grid, update)
@@ -61,26 +63,14 @@ func distribute(full map[[2]int]bool, grid [][]int, update chan<- int) {
 	grid[x[0]][x[1]] -= 4
 	if grid[x[0]][x[1]] < 4 {
 		delete(full,x)
-		/*		switch {
-		case i==0:
-			full = full[1:]
-		case i<m-1:
-			full = append(full[:i], full[i+1:]...)
-		case i==m-1:
-			full = full[:m-1]
-		default:
-			log.Fatalf("This cannot happen: i=%d m=%d\n", i, m)
-		}	*/
 	}
 	
 	score := 0
 	for _, s := range Spread {
 		y := fall(x,s)
-		//fmt.Printf(" adding to %+v\n", y)
 		if is_inside(y, len(grid)){
 			grid[y[0]][y[1]] += 1
 			if grid[y[0]][y[1]] > 3 {
-				//full = append(full, y)
 				full[y] = true
 			}
 		} else {
@@ -88,15 +78,11 @@ func distribute(full map[[2]int]bool, grid [][]int, update chan<- int) {
 		}
 	}
 
-	//fmt.Printf(" full after spread: %+v\n", full)
-	//print_fulls(full, grid)
-	//fmt.Printf(" grid after spread: %+v\n", grid)
 	fmt.Printf("weight = %d  score=%d\n", total_sand(grid), score)
 	print_fulls(full, grid)
-	//fmt.Printf("Distributing cell %d,  xy = %+v\n", i, x)
 
 	update<-score
-	time.Sleep(DELAY * time.Second)
+	time.Sleep(DELAY)
 	if len(full) > 0 {
 		distribute(full, grid, update)
 	}	
@@ -113,6 +99,7 @@ func is_inside(x [2]int, size int) bool {
 		return false } else {
 		return true }
 }
+
 
 func total_sand(grid [][]int) int {
 	total := 0

@@ -28,7 +28,7 @@ type GamePool struct {
 	grid       [][]int 
 }
 
-func NewGame(size int) *GamePool {
+func NewGame(size int, fillpct int, seed int64) *GamePool {
     return &GamePool{
 		counter:    0,
         register:   make(chan *Player),
@@ -38,7 +38,7 @@ func NewGame(size int) *GamePool {
 		active:     nil, 
 		update:     make(chan int),
 		next:       make(chan bool),
-		grid:       initialize(size),
+		grid:       initialize(size, fillpct, seed),
     }
 }
 
@@ -46,7 +46,6 @@ func (pool *GamePool) get_players_scores() []string {
 	var lines []string
 	for p:= pool.first;; p = p.next {
 		line := p.id + " : " + strconv.Itoa(p.score)
-		//fmt.Printf("p: %s  pn: %s  pp:%s \n", p.id, p.next.id, p.prev.id )
 		lines = append(lines, line)
 		if p.next == pool.first {
 			break;
@@ -96,7 +95,7 @@ func (pool *GamePool) Start() {
 				pool.active = client
 				pool.first = client
 				activate = true
-			} else {
+			} else {                // put new client last in the queue
 				client.next = pool.active
 				client.prev = pool.active.prev
 				pool.active.prev.next = client
@@ -142,10 +141,8 @@ func (pool *GamePool) Start() {
 			pool.active.score += n
 			pool.update_all(false, pool.active.id+" adding sand")
 			break			
-        
-		
+        		
 		case <-pool.next:
-			fmt.Printf("")
 			pool.active = pool.active.next
 			pool.update_all(true, pool.active.id+" is next")
 			break			

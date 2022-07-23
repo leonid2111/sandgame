@@ -57,28 +57,35 @@ func connectWs(pool *GamePool, w http.ResponseWriter, r *http.Request) {
 	client := &Player{
         Conn: conn,
         gamePool: pool,
-    }
-	
+    }	
     pool.register <- client
     client.Listen()
 }
 
 
 var DELAY time.Duration
+var size *int
+var fillpct *int
+var seed *int64
 
 func main() {
 	var port = flag.String("p", "8080", "game port")
-	var size = flag.Int("s", 12, "game grid size")
-	var delay = flag.Int("d", 1, "delay")
+	size = flag.Int("s", 12, "game grid size")
+	var delay = flag.Int("d", 200, "delay millis")
+	fillpct = flag.Int("f", 80, "initial grid fill percentage")
+	seed = flag.Int64("r", 42, "seed for rand source, taken from timer if < 0")
 	flag.Parse()
-	fmt.Printf("Starting sandgame on port %s with grid size %d\n", *port, *size)
-	DELAY = time.Duration(*delay);
-	pool := NewGame(*size)
+	
+	DELAY  = time.Duration(*delay) * time.Millisecond
+	fmt.Printf("Starting sandgame on port %s with grid size %d, dt=%+v, fill pct=%d, seed=%d\n",
+		*port, *size, DELAY, *fillpct, *seed)
+	
+	pool := NewGame(*size, *fillpct, *seed)
     go pool.Start()
-	//pool.next <- true   // to remove?
 	
     http.HandleFunc("/sandgame", func(w http.ResponseWriter, r *http.Request) {
         connectWs(pool, w, r)
     })	
     log.Fatal(http.ListenAndServe(":"+*port, nil))
 }
+
