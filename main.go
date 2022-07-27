@@ -65,22 +65,22 @@ func connectWs(pool *GamePool, w http.ResponseWriter, r *http.Request) {
 
 var DELAY time.Duration
 var size *int
-var fillpct *int
-var seed *int64
+
+//Usage:  ./sandgame -t 100 -n 12 -r 42 -s 0.75
 
 func main() {
 	var port = flag.String("p", "8080", "game port")
-	size = flag.Int("s", 12, "game grid size")
-	var delay = flag.Int("d", 200, "delay millis")
-	fillpct = flag.Int("f", 80, "initial grid fill percentage")
-	seed = flag.Int64("r", 42, "seed for rand source, taken from timer if < 0")
+	size = flag.Int("n", 12, "game grid size")
+	var delay = flag.Int("t", 200, "dealy time between updates, millis")
+	var saturation = flag.Float64("s", 0.8, "initial grid saturation, in [0,1]")
+	var rseed = flag.Uint64("r", 42, "seed for rand source, taken from timer if < 0")
 	flag.Parse()
 	
 	DELAY  = time.Duration(*delay) * time.Millisecond
-	fmt.Printf("Starting sandgame on port %s with grid size %d, dt=%+v, fill pct=%d, seed=%d\n",
-		*port, *size, DELAY, *fillpct, *seed)
+	fmt.Printf("Starting sandgame on port %s with grid size %d, dt=%+v, saturation=%.2f, rseed=%d\n",
+		*port, *size, DELAY, *saturation, *rseed)
 	
-	pool := NewGame(*size, *fillpct, *seed)
+	pool := NewGame(*size, *saturation, *rseed)
     go pool.Start()
 	
     http.HandleFunc("/sandgame", func(w http.ResponseWriter, r *http.Request) {

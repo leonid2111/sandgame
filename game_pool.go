@@ -28,7 +28,7 @@ type GamePool struct {
 	grid       [][]int 
 }
 
-func NewGame(size int, fillpct int, seed int64) *GamePool {
+func NewGame(size int, saturation float64, rseed uint64) *GamePool {
     return &GamePool{
 		counter:    0,
         register:   make(chan *Player),
@@ -38,7 +38,7 @@ func NewGame(size int, fillpct int, seed int64) *GamePool {
 		active:     nil, 
 		update:     make(chan int),
 		next:       make(chan bool),
-		grid:       initialize(size, fillpct, seed),
+		grid:       initialize(size, saturation, rseed),
     }
 }
 
@@ -137,14 +137,18 @@ func (pool *GamePool) Start() {
 			break
 
 		case n := <-pool.update:
-			fmt.Printf("updating the grid, adding %d to %s\n", n, pool.active.id)
-			pool.active.score += n
-			pool.update_all(false, pool.active.id+" adding sand")
+			if pool.active != nil { // make sure last player didn't leave while the grid is still updating
+				fmt.Printf("updating the grid, adding %d to %s\n", n, pool.active.id)
+				pool.active.score += n
+				pool.update_all(false, pool.active.id+" adding sand")
+			} 
 			break			
         		
 		case <-pool.next:
-			pool.active = pool.active.next
-			pool.update_all(true, pool.active.id+" is next")
+			if pool.active != nil { // make sure last player didn't leave while the grid was updating
+				pool.active = pool.active.next
+				pool.update_all(true, pool.active.id+" is next")
+			}
 			break			
 		}
 	}

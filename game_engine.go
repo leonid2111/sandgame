@@ -4,29 +4,31 @@ import (
 	"fmt"
 	//"log"
 	"time"
-    "math/rand"
+    //"math/rand" - does not have binomial sampler
+	"golang.org/x/exp/rand"
+	"gonum.org/v1/gonum/stat/distuv"
 )
 
 var Spread = [4][2]int{{0,1},{0,-1},{1,0},{-1,0}}
 
 var randm *rand.Rand
 
-func initialize(size int, fillpct int, seed int64) [][]int {
-	var source rand.Source
-	if seed < 0 {
-		source = rand.NewSource(time.Now().UnixNano())
-	} else {
-		source = rand.NewSource(seed)
+func initialize(size int, saturation float64, rseed uint64) [][]int {
+	if rseed < 0 {
+		rseed = uint64(time.Now().UnixNano())
 	}
+	source := rand.NewSource(rseed)	
 	randm = rand.New(source)
+
 	
+	binom := distuv.Binomial{N:3, P:saturation, Src:source}	
 	var grid = make([][]int, size)
 	for i := range grid {
 		grid[i] = make([]int, size)
 		for j := range grid[i]{
-			grid[i][j] = randm.Intn(4)
+			grid[i][j] = int(binom.Rand())
 		}
-	}	
+	}
     return grid
 }
 
