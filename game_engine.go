@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	//"log"
 	"time"
     //"math/rand" - does not have binomial sampler
 	"golang.org/x/exp/rand"
@@ -69,8 +68,8 @@ func distribute(full map[[2]int]bool, grid [][]int, update chan<- int) {
 	
 	score := 0
 	for _, s := range Spread {
-		y := fall(x,s)
-		if is_inside(y, len(grid)){
+		y := [2]int{x[0]+s[0], x[1]+s[1]}
+		if (y[0]>=0 && y[1]>=0 && y[0] < *size && y[1] < *size) {	
 			grid[y[0]][y[1]] += 1
 			if grid[y[0]][y[1]] > 3 {
 				full[y] = true
@@ -90,17 +89,6 @@ func distribute(full map[[2]int]bool, grid [][]int, update chan<- int) {
 	}	
 } 
 
-
-func fall(x [2]int, s [2]int) [2]int {
-	var y = [2]int{x[0]+s[0], x[1]+s[1]}
-	return y
-}
-
-func is_inside(x [2]int, size int) bool {
-	if (x[0]<0 || x[1]<0 || x[0]>=size || x[1]>=size) {
-		return false } else {
-		return true }
-}
 
 
 func total_sand(grid [][]int) int {
