@@ -15,7 +15,7 @@ var upgrader = websocket.Upgrader{
 }
 
 
-type Player struct { // base type
+type Player struct {
     id   string
     gamePool *GamePool
 	next *Player
@@ -42,26 +42,13 @@ func (player *Player) simulate() {
 	defer func() {
         player.gamePool.unregister <- player
     }()
-
 	
 	time.Sleep(10000 * time.Millisecond)
 	fmt.Println("New sim registeres")
     player.gamePool.register <- player
 
 	for{}
-    //client.Listen()
-	
-    /*
 
-    for {
-        _, p, err := player.Conn.ReadMessage()
-        if err != nil {
-            log.Println(err)
-            return
-        }
-        msg := PlayerMessage{Player: player, Message: p}
-        fmt.Printf("%s moves:  %+v \n", player.id, string(p))
-    }*/
 }
 
 

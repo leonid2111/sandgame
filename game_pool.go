@@ -63,23 +63,15 @@ func (pool *GamePool) update_all(activate bool, comm string) {
 		Activate:activate,
 		Comment:comm,
 	}
-	
 	fmt.Printf("Updating active player, %s\n", pool.active.id )
-	//updateJson, _ := json.Marshal(msg)
-	//pool.active.Conn.WriteJSON(string(updateJson))
 	pool.active.update(msg)
 	
 	fmt.Printf("Updating waiting players\n")
 	for p:= pool.active.next; p != pool.active; p = p.next {
-		//fmt.Printf("Looping:  %s %s %s\n", p.id,  p.next.id, pool.first.id)
-		//fmt.Printf("Updating  %s\n", p.id )
 		msg.Header = p.id+" - waiting for "+pool.active.id
 		msg.Activate = false
-		//updateJson, _ := json.Marshal(msg)
-		//p.Conn.WriteJSON(string(updateJson))
 		p.update(msg)
 	}
-	//fmt.Printf("Updated all\n")	
 }
 
 
