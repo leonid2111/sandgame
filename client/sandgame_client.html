@@ -7,7 +7,7 @@
   <body>
 
     <div class="grid">
-      <canvas id="canvas" height="700" width="800" style="border:1px solid #d3d3d3;"></canvas>
+      <canvas id="canvas" height="800" width="1200" style="border:1px solid #d3d3d3;"></canvas>
     </div>
     
     <script>
@@ -17,8 +17,8 @@
 	  const cellsize = 20;
 	  const hoffset = 40;
 	  const voffset = 40;
-	  //const colors = {0:'white',1:'yellow',2:'red',3:'brown',4:'purple'}
-	  const colors = {0:'white',1:'#FFFCCC',2:'#FFD07F',3:'#E59100',4:'purple',5:'black',6:'blue',7:'green'}
+	  //const colors = {0:'white',1:'#FFFCCC',2:'#FFD07F',3:'#E59100',4:'purple',5:'black',6:'blue',7:'green'}
+	  const colors = {0:'white',1:'#FFFCCC',2:'#FFD07F',3:'#E59100',4:'#A52A2A',5:'#800000',6:'purple',7:'black'}
 	  var rows;
 
 	  
@@ -29,7 +29,8 @@
 		  for(let i=0; i<grid.length; i++){
 			  for(let j=0; j<grid.length; j++){
 				  ctx.strokeRect(hoffset+i*cellsize, voffset+j*cellsize, cellsize, cellsize);
-				  ctx.fillStyle = colors[grid[i][j]]
+				  //ctx.fillStyle = colors[grid[i][j]]
+				  ctx.fillStyle = colors[Math.min(grid[i][j],7)]
 				  ctx.fillRect(hoffset+i*cellsize, voffset+j*cellsize, cellsize, cellsize)
 			  }
 		  }

@@ -57,9 +57,9 @@ func distribute(full map[[2]int]bool, grid [][]int, update chan<- int) {
 		if i==j { break }
 	}
 		
-	fmt.Printf("Init weight = %d\n", total_sand(grid))
-	print_fulls(full, grid)
-	fmt.Printf("Distributing cell %d,  xy = %+v\n", i, x)
+	//fmt.Printf("Init weight = %d\n", total_sand(grid))
+	//print_fulls(full, grid)
+	//fmt.Printf("Distributing cell %d,  xy = %+v\n", i, x)
 
 	grid[x[0]][x[1]] -= 4
 	if grid[x[0]][x[1]] < 4 {
@@ -79,8 +79,8 @@ func distribute(full map[[2]int]bool, grid [][]int, update chan<- int) {
 		}
 	}
 
-	fmt.Printf("weight = %d  score=%d\n", total_sand(grid), score)
-	print_fulls(full, grid)
+	//fmt.Printf("weight = %d  score=%d\n", total_sand(grid), score)
+	//print_fulls(full, grid)
 
 	update<-score
 	time.Sleep(DELAY)

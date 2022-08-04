@@ -14,51 +14,56 @@ var upgrader = websocket.Upgrader{
     WriteBufferSize: 1024,
 }
 
-
-type Player struct {
+	
+type Player struct { 
     id   string
     gamePool *GamePool
 	next *Player
 	prev *Player
 	score int
     Conn *websocket.Conn
+	sim chan bool
 }
 
 
 func (player *Player) update(msg ServerMessage) {
-	fmt.Println("update client player")
-	if player.Conn != nil {
+	if player.Conn != nil {                          // real player
 		updateJson, _ := json.Marshal(msg)
 		player.Conn.WriteJSON(string(updateJson))
-	} else if msg.Activate {
-		xy := [2]int{3,3}
-		go add_sand(xy, player.gamePool.grid, player.gamePool.update, player.gamePool.next)
+	} else if msg.Activate {                         // sim player
+		player.sim <- true
 	}
 }
 
 
 
-func (player *Player) simulate() {
+func (p *Player) simulate() {
 	defer func() {
-        player.gamePool.unregister <- player
+        p.gamePool.unregister <- p
     }()
 	
 	time.Sleep(10000 * time.Millisecond)
 	fmt.Println("New sim registeres")
-    player.gamePool.register <- player
+    p.gamePool.register <- p
 
-	for{}
+	for{
+		select {
+		case <- p.sim:
+			// do something else here
+			xm := randm.Intn(*size)
+			ym := randm.Intn(*size)
+			xy := [2]int{xm, ym}   
 
+			/*for k = 0; k < *size/2; k++ {
+				for j=0; 
+			}*/
+
+			
+			p.gamePool.move <- xy			
+		}
+	}
 }
 
-
-
-
-
-type PlayerMessage struct {
-    Player    *Player    //`json:"type"`
-    Message   []byte     //`json:"body"`
-}
 
 func (player *Player) Listen() {
     defer func() {
@@ -72,11 +77,15 @@ func (player *Player) Listen() {
             log.Println(err)
             return
         }
-        msg := PlayerMessage{Player: player, Message: p}
-        fmt.Printf("%s moves:  %+v \n", player.id, string(p))
-        player.gamePool.move <- &msg
+		
+        //fmt.Printf("%s moves:  %+v \n", player.id, string(p))
+		var xy [2]int
+		json.Unmarshal(p, &xy)
+        player.gamePool.move <- xy
     }
 }
+
+
 
 func connectWs(pool *GamePool, w http.ResponseWriter, r *http.Request) {
     fmt.Println("New player hits wsendpoint")
@@ -89,6 +98,7 @@ func connectWs(pool *GamePool, w http.ResponseWriter, r *http.Request) {
 	client := &Player{
         Conn: conn,
         gamePool: pool,
+		id: "Player ",
     }	
     pool.register <- client
     client.Listen()

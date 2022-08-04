@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strconv"
-	"encoding/json"
 )
 
 
@@ -19,7 +18,7 @@ type GamePool struct {
 	counter    int
     register   chan *Player
     unregister chan *Player
-    move       chan *PlayerMessage
+    move       chan [2]int
 
 	first      *Player
 	active     *Player
@@ -34,7 +33,7 @@ func NewGame(size int, saturation float64, rseed uint64) *GamePool {
 		counter:    0,
         register:   make(chan *Player),
         unregister: make(chan *Player),
-        move:       make(chan *PlayerMessage),
+        move:       make(chan [2]int),
 		first:      nil, 
 		active:     nil, 
 		update:     make(chan int),
@@ -63,10 +62,10 @@ func (pool *GamePool) update_all(activate bool, comm string) {
 		Activate:activate,
 		Comment:comm,
 	}
-	fmt.Printf("Updating active player, %s\n", pool.active.id )
+	//fmt.Printf("Updating active player, %s\n", pool.active.id )
 	pool.active.update(msg)
 	
-	fmt.Printf("Updating waiting players\n")
+	//fmt.Printf("Updating waiting players\n")
 	for p:= pool.active.next; p != pool.active; p = p.next {
 		msg.Header = p.id+" - waiting for "+pool.active.id
 		msg.Activate = false
@@ -82,7 +81,7 @@ func (pool *GamePool) Start() {
         case client := <-pool.register:
 			pool.counter++
 			fmt.Printf("player %d registering\n", pool.counter )
-			client.id = "Player "+strconv.Itoa(pool.counter)
+			client.id += strconv.Itoa(pool.counter)
 			var activate bool
 			if pool.active == nil {  // first client 
 				client.next = client
@@ -125,15 +124,14 @@ func (pool *GamePool) Start() {
             break
 
 		case move := <-pool.move:
-			fmt.Printf("client move")
-			var xy [2]int
-			json.Unmarshal(move.Message, &xy)
-			go add_sand(xy, pool.grid, pool.update, pool.next)
+			//fmt.Printf("client moves\n")
+			fmt.Printf("%s moves:  %+v \n", pool.active.id, move)
+			go add_sand(move, pool.grid, pool.update, pool.next)
 			break
 
 		case n := <-pool.update:
 			if pool.active != nil { // make sure last player didn't leave while the grid is still updating
-				fmt.Printf("updating the grid, adding %d to %s\n", n, pool.active.id)
+				//fmt.Printf("updating the grid, adding %d to %s\n", n, pool.active.id)
 				pool.active.score += n
 				pool.update_all(false, pool.active.id+" adding sand")
 			} 
@@ -148,5 +146,3 @@ func (pool *GamePool) Start() {
 		}
 	}
 }
-
-

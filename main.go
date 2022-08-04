@@ -11,11 +11,11 @@ import (
 
 
 
-
 var DELAY time.Duration
 var size *int
 
-//Usage:  ./sandgame -t 100 -n 12 -r 42 -s 0.75 -a 2
+//Usage:   ./sandgame 
+//or try   ./sandgame -t 5 -n 22 -r 42 -s 1 -a 4
 
 func main() {
 	var port = flag.String("p", "8080", "game port")
@@ -39,7 +39,8 @@ func main() {
     })
 	
 	for m := 0; m < *autoplayers; m++ {
-		p :=  &Player{gamePool: pool}	
+		p :=  &Player{gamePool: pool, 
+		id: "Sim ", sim: make(chan bool)}	
 		go p.simulate()
 	}
 	
